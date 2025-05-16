@@ -18,15 +18,15 @@ Typhoon distributes upstream Kubernetes, architectural conventions, and cluster 
 
 ## Features <a href="https://www.cncf.io/certification/software-conformance/"><img align="right" src="https://storage.googleapis.com/poseidon/certified-kubernetes.png"></a>
 
-* Kubernetes v1.30.0 (upstream)
-* Single or multi-master, [Calico](https://www.projectcalico.org/) or [Cilium](https://github.com/cilium/cilium) or [flannel](https://github.com/coreos/flannel) networking
+* Kubernetes v1.33.0 (upstream)
+* Single or multi-master, [Cilium](https://github.com/cilium/cilium) or [flannel](https://github.com/coreos/flannel) networking
 * On-cluster etcd with TLS, [RBAC](https://kubernetes.io/docs/admin/authorization/rbac/)-enabled, [network policy](https://kubernetes.io/docs/concepts/services-networking/network-policies/), SELinux enforcing
 * Advanced features like [worker pools](https://typhoon.psdn.io/advanced/worker-pools/), [preemptible](https://typhoon.psdn.io/flatcar-linux/google-cloud/#preemption) workers, and [snippets](https://typhoon.psdn.io/advanced/customization/#hosts) customization
 * Ready for Ingress, Prometheus, Grafana, CSI, or other [addons](https://typhoon.psdn.io/addons/overview/)
 
 ## Modules
 
-Typhoon provides a Terraform Module for each supported operating system and platform.
+Typhoon provides a Terraform Module for defining a Kubernetes cluster on each supported operating system and platform.
 
 Typhoon is available for [Fedora CoreOS](https://getfedora.org/coreos/).
 
@@ -57,6 +57,14 @@ Typhoon is available for [Flatcar Linux](https://www.flatcar-linux.org/releases/
 | AWS           | Flatcar Linux (ARM64) | [aws/flatcar-linux/kubernetes](aws/flatcar-linux/kubernetes) | alpha |
 | Azure         | Flatcar Linux (ARM64) | [azure/flatcar-linux/kubernetes](azure/flatcar-linux/kubernetes) | alpha |
 
+Typhoon also provides Terraform Modules for optionally managing individual components applied onto clusters.
+
+| Name    | Terraform Module | Status |
+|---------|------------------|--------|
+| CoreDNS | [addons/coredns](addons/coredns) | beta |
+| Cilium  | [addons/cilium](addons/cilium) | beta |
+| flannel | [addons/flannel](addons/flannel) | beta |
+
 ## Documentation
 
 * [Docs](https://typhoon.psdn.io)
@@ -70,7 +78,7 @@ Define a Kubernetes cluster by using the Terraform module for your chosen platfo
 
 ```tf
 module "yavin" {
-  source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.30.0"
+  source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.33.0"
 
   # Google Cloud
   cluster_name  = "yavin"
@@ -88,8 +96,9 @@ module "yavin" {
 
 # Obtain cluster kubeconfig
 resource "local_file" "kubeconfig-yavin" {
-  content  = module.yavin.kubeconfig-admin
-  filename = "/home/user/.kube/configs/yavin-config"
+  content         = module.yavin.kubeconfig-admin
+  filename        = "/home/user/.kube/configs/yavin-config"
+  file_permission = "0600"
 }
 ```
 
@@ -109,9 +118,9 @@ In 4-8 minutes (varies by platform), the cluster will be ready. This Google Clou
 $ export KUBECONFIG=/home/user/.kube/configs/yavin-config
 $ kubectl get nodes
 NAME                                       ROLES    STATUS  AGE  VERSION
-yavin-controller-0.c.example-com.internal  <none>   Ready   6m   v1.30.0
-yavin-worker-jrbf.c.example-com.internal   <none>   Ready   5m   v1.30.0
-yavin-worker-mzdm.c.example-com.internal   <none>   Ready   5m   v1.30.0
+yavin-controller-0.c.example-com.internal  <none>   Ready   6m   v1.33.0
+yavin-worker-jrbf.c.example-com.internal   <none>   Ready   5m   v1.33.0
+yavin-worker-mzdm.c.example-com.internal   <none>   Ready   5m   v1.33.0
 ```
 
 List the pods.
@@ -119,9 +128,10 @@ List the pods.
 ```
 $ kubectl get pods --all-namespaces
 NAMESPACE     NAME                                      READY  STATUS    RESTARTS  AGE
-kube-system   calico-node-1cs8z                         2/2    Running   0         6m
-kube-system   calico-node-d1l5b                         2/2    Running   0         6m
-kube-system   calico-node-sp9ps                         2/2    Running   0         6m
+kube-system   cilium-1cs8z                              1/1    Running   0         6m
+kube-system   cilium-d1l5b                              1/1    Running   0         6m
+kube-system   cilium-sp9ps                              1/1    Running   0         6m
+kube-system   cilium-operator-68d778b448-g744f          1/1    Running   0         6m
 kube-system   coredns-1187388186-zj5dl                  1/1    Running   0         6m
 kube-system   coredns-1187388186-dkh3o                  1/1    Running   0         6m
 kube-system   kube-apiserver-controller-0               1/1    Running   0         6m

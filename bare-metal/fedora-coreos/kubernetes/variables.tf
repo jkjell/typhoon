@@ -88,32 +88,14 @@ variable "ssh_authorized_key" {
 
 variable "networking" {
   type        = string
-  description = "Choice of networking provider (flannel, calico, or cilium)"
+  description = "Choice of networking provider (flannel or cilium)"
   default     = "cilium"
-}
-
-variable "install_container_networking" {
-  type        = bool
-  description = "Install the chosen networking provider during cluster bootstrap (use false to self-manage)"
-  default     = true
-}
-
-variable "network_mtu" {
-  type        = number
-  description = "CNI interface MTU (applies to calico only)"
-  default     = 1480
-}
-
-variable "network_ip_autodetection_method" {
-  type        = string
-  description = "Method to autodetect the host IPv4 address (applies to calico only)"
-  default     = "first-found"
 }
 
 variable "pod_cidr" {
   type        = string
   description = "CIDR IPv4 range to assign Kubernetes pods"
-  default     = "10.2.0.0/16"
+  default     = "10.20.0.0/14"
 }
 
 variable "service_cidr" {
@@ -145,23 +127,25 @@ variable "kernel_args" {
   default     = []
 }
 
-variable "enable_reporting" {
-  type        = bool
-  description = "Enable usage or analytics reporting to upstreams (Calico)"
-  default     = false
+# advanced
+
+variable "components" {
+  description = "Configure pre-installed cluster components"
+  # Component configs are passed through to terraform-render-bootstrap,
+  # which handles type enforcement and defines defaults
+  # https://github.com/poseidon/terraform-render-bootstrap/blob/main/variables.tf#L95
+  type = object({
+    enable     = optional(bool)
+    coredns    = optional(map(any))
+    kube_proxy = optional(map(any))
+    flannel    = optional(map(any))
+    cilium     = optional(map(any))
+  })
+  default = null
 }
 
-variable "enable_aggregation" {
-  type        = bool
-  description = "Enable the Kubernetes Aggregation Layer"
-  default     = true
-}
-
-# unofficial, undocumented, unsupported
-
-variable "cluster_domain_suffix" {
-  description = "Queries for domains with the suffix will be answered by coredns. Default is cluster.local (e.g. foo.default.svc.cluster.local) "
+variable "service_account_issuer" {
   type        = string
-  default     = "cluster.local"
+  description = "kube-apiserver service account token issuer (used as an identifier in 'iss' claims)"
+  default     = "https://kubernetes.default.svc.cluster.local"
 }
-

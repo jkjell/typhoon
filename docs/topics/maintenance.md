@@ -13,12 +13,12 @@ Typhoon provides tagged releases to allow clusters to be versioned using ordinar
 
 ```
 module "yavin" {
-  source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.30.0"
+  source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.33.0"
   ...
 }
 
 module "mercury" {
-  source = "git::https://github.com/poseidon/typhoon//bare-metal/flatcar-linux/kubernetes?ref=v1.30.0"
+  source = "git::https://github.com/poseidon/typhoon//bare-metal/flatcar-linux/kubernetes?ref=v1.33.0"
   ...
 }
 ```
@@ -128,7 +128,7 @@ Apply complete! Resources: 0 added, 0 changed, 55 destroyed.
 
 #### In-place Edits
 
-Typhoon uses a static pod Kubernetes control plane which allows certain manifest upgrades to be performed in-place. Components like `kube-apiserver`, `kube-controller-manager`, and `kube-scheduler` are run as static pods. Components `flannel`/`calico`, `coredns`, and `kube-proxy` are scheduled on Kubernetes and can be edited via `kubectl`.
+Typhoon uses a static pod Kubernetes control plane which allows certain manifest upgrades to be performed in-place. Components like `kube-apiserver`, `kube-controller-manager`, and `kube-scheduler` are run as static pods. Components `flannel`/`cilium`, `coredns`, and `kube-proxy` are scheduled on Kubernetes and can be edited via `kubectl`.
 
 In certain scenarios, in-place edits can be useful for quickly rolling out security patches (e.g. bumping `coredns`) or prioritizing speed over the safety of a proper cluster re-provision and transition.
 
@@ -192,7 +192,7 @@ Applying edits to most worker fields will start an instance refresh:
 However, changing `os_stream`/`os_channel` or new AMIs becoming available will NOT change the launch configuration or trigger an Instance Refresh. This allows Fedora CoreOS or Flatcar Linux to auto-update themselves via reboots and avoids unexpected terraform diffs for new AMIs.
 
 !!! note
-    Before Typhoon v1.30.0, worker nodes only used new launch configurations when replaced manually (or due to failure). If you must change node configuration manually, it's still possible. Create a new [worker pool](../advanced/worker-pools.md), then scale down the old worker pool as desired.
+    Before Typhoon v1.33.0, worker nodes only used new launch configurations when replaced manually (or due to failure). If you must change node configuration manually, it's still possible. Create a new [worker pool](../advanced/worker-pools.md), then scale down the old worker pool as desired.
 
 ### Google Cloud
 
@@ -233,7 +233,7 @@ Applying edits to most worker fields will start an instance refresh:
 However, changing `os_stream`/`os_channel` or new compute images becoming available will NOT change the launch template or update instances. This allows Fedora CoreOS or Flatcar Linux to auto-update themselves via reboots and avoids unexpected terraform diffs for new AMIs.
 
 !!! note
-    Before Typhoon v1.30.0, worker nodes only used new launch templates when replaced manually (or due to failure). If you must change node configuration manually, it's still possible. Create a new [worker pool](../advanced/worker-pools.md), then scale down the old worker pool as desired.
+    Before Typhoon v1.33.0, worker nodes only used new launch templates when replaced manually (or due to failure). If you must change node configuration manually, it's still possible. Create a new [worker pool](../advanced/worker-pools.md), then scale down the old worker pool as desired.
 
 ## Upgrade poseidon/ct
 

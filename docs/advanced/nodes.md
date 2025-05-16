@@ -36,7 +36,7 @@ Add custom initial worker node labels to default workers or worker pool nodes to
 
     ```tf
     module "yavin" {
-      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.30.0"
+      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.33.0"
 
       # Google Cloud
       cluster_name  = "yavin"
@@ -57,7 +57,7 @@ Add custom initial worker node labels to default workers or worker pool nodes to
 
     ```tf
     module "yavin-pool" {
-      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes/workers?ref=v1.30.0"
+      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes/workers?ref=v1.33.0"
 
       # Google Cloud
       cluster_name = "yavin"
@@ -83,13 +83,13 @@ In the example above, the two default workers would be labeled `pool: default` a
 Add custom initial taints on worker pool nodes to indicate a node is unique and should only schedule workloads that explicitly tolerate a given taint key.
 
 !!! warning
-    Since taints prevent workloads scheduling onto a node, you must decide whether `kube-system` DaemonSets (e.g. flannel, Calico, Cilium) should tolerate your custom taint by setting `daemonset_tolerations`. If you don't list your custom taint(s), important components won't run on these nodes.
+    Since taints prevent workloads scheduling onto a node, you must decide whether `kube-system` DaemonSets (e.g. flannel, Cilium) should tolerate your custom taint by setting `daemonset_tolerations`. If you don't list your custom taint(s), important components won't run on these nodes.
 
 === "Cluster"
 
     ```tf
     module "yavin" {
-      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.30.0"
+      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes?ref=v1.33.0"
 
       # Google Cloud
       cluster_name  = "yavin"
@@ -110,7 +110,7 @@ Add custom initial taints on worker pool nodes to indicate a node is unique and 
 
     ```tf
     module "yavin-pool" {
-      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes/workers?ref=v1.30.0"
+      source = "git::https://github.com/poseidon/typhoon//google-cloud/fedora-coreos/kubernetes/workers?ref=v1.33.0"
 
       # Google Cloud
       cluster_name = "yavin"
@@ -130,5 +130,5 @@ Add custom initial taints on worker pool nodes to indicate a node is unique and 
     }
     ```
 
-In the example above, the the additional worker would be tainted with `role=gpu:NoSchedule` to prevent workloads scheduling, but `kube-system` components like flannel, Calico, or Cilium would tolerate that custom taint to run there.
+In the example above, the the additional worker would be tainted with `role=gpu:NoSchedule` to prevent workloads scheduling, but `kube-system` components like flannel or Cilium would tolerate that custom taint to run there.
 

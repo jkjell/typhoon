@@ -1,10 +1,10 @@
 # Bare-Metal
 
-In this tutorial, we'll network boot and provision a Kubernetes v1.30.0 cluster on bare-metal with Fedora CoreOS.
+In this tutorial, we'll network boot and provision a Kubernetes v1.33.0 cluster on bare-metal with Fedora CoreOS.
 
 First, we'll deploy a [Matchbox](https://github.com/poseidon/matchbox) service and setup a network boot environment. Then, we'll declare a Kubernetes cluster using the Typhoon Terraform module and power on machines. On PXE boot, machines will install Fedora CoreOS to disk, reboot into the disk install, and provision themselves as Kubernetes controllers or workers via Ignition.
 
-Controller hosts are provisioned to run an `etcd-member` peer and a `kubelet` service. Worker hosts run a `kubelet` service. Controller nodes run `kube-apiserver`, `kube-scheduler`, `kube-controller-manager`, and `coredns`, while `kube-proxy` and `calico` (or `flannel`) run on every node. A generated `kubeconfig` provides `kubectl` access to the cluster.
+Controller hosts are provisioned to run an `etcd-member` peer and a `kubelet` service. Worker hosts run a `kubelet` service. Controller nodes run `kube-apiserver`, `kube-scheduler`, `kube-controller-manager`, and `coredns`, while `kube-proxy` and (`flannel` or `cilium`) run on every node. A generated `kubeconfig` provides `kubectl` access to the cluster.
 
 ## Requirements
 
@@ -154,7 +154,7 @@ Define a Kubernetes cluster using the module `bare-metal/fedora-coreos/kubernete
 
 ```tf
 module "mercury" {
-  source = "git::https://github.com/poseidon/typhoon//bare-metal/fedora-coreos/kubernetes?ref=v1.30.0"
+  source = "git::https://github.com/poseidon/typhoon//bare-metal/fedora-coreos/kubernetes?ref=v1.33.0"
 
   # bare-metal
   cluster_name            = "mercury"
@@ -191,7 +191,7 @@ Workers with similar features can be defined inline using the `workers` field as
 
 ```tf
 module "mercury-node1" {
-  source = "git::https://github.com/poseidon/typhoon//bare-metal/fedora-coreos/kubernetes/worker?ref=v1.30.0"
+  source = "git::https://github.com/poseidon/typhoon//bare-metal/fedora-coreos/kubernetes/worker?ref=v1.33.0"
 
   # bare-metal
   cluster_name = "mercury"
@@ -292,7 +292,6 @@ $ journalctl -f -u bootstrap
 podman[1750]: The connection to the server cluster.example.com:6443 was refused - did you specify the right host or port?
 podman[1750]: Waiting for static pod control plane
 ...
-podman[1750]: serviceaccount/calico-node unchanged
 systemd[1]: Started Kubernetes control plane.
 ```
 
@@ -302,8 +301,9 @@ systemd[1]: Started Kubernetes control plane.
 
 ```
 resource "local_file" "kubeconfig-mercury" {
-  content  = module.mercury.kubeconfig-admin
-  filename = "/home/user/.kube/configs/mercury-config"
+  content         = module.mercury.kubeconfig-admin
+  filename        = "/home/user/.kube/configs/mercury-config"
+  file_permission = "0600"
 }
 ```
 
@@ -313,9 +313,9 @@ List nodes in the cluster.
 $ export KUBECONFIG=/home/user/.kube/configs/mercury-config
 $ kubectl get nodes
 NAME                STATUS  ROLES   AGE  VERSION
-node1.example.com   Ready   <none>  10m  v1.30.0
-node2.example.com   Ready   <none>  10m  v1.30.0
-node3.example.com   Ready   <none>  10m  v1.30.0
+node1.example.com   Ready   <none>  10m  v1.33.0
+node2.example.com   Ready   <none>  10m  v1.33.0
+node3.example.com   Ready   <none>  10m  v1.33.0
 ```
 
 List the pods.
@@ -323,9 +323,10 @@ List the pods.
 ```
 $ kubectl get pods --all-namespaces
 NAMESPACE     NAME                                       READY     STATUS    RESTARTS   AGE
-kube-system   calico-node-6qp7f                          2/2       Running   1          11m
-kube-system   calico-node-gnjrm                          2/2       Running   0          11m
-kube-system   calico-node-llbgt                          2/2       Running   0          11m
+kube-system   cilium-6qp7f                               1/1       Running   1          11m
+kube-system   cilium-gnjrm                               1/1       Running   0          11m
+kube-system   cilium-llbgt                               1/1       Running   0          11m
+kube-system   cilium-operator-68d778b448-g744f           1/1       Running   0          11m
 kube-system   coredns-1187388186-dj3pd                   1/1       Running   0          11m
 kube-system   coredns-1187388186-mx9rt                   1/1       Running   0          11m
 kube-system   kube-apiserver-node1.example.com           1/1       Running   0          11m
@@ -363,13 +364,10 @@ Check the [variables.tf](https://github.com/poseidon/typhoon/blob/master/bare-me
 | workers | List of worker machine detail objects (unique name, identifying MAC address, FQDN) | [] | `[{name="node2", mac="52:54:00:b2:2f:86", domain="node2.example.com"}, {name="node3", mac="52:54:00:c3:61:77", domain="node3.example.com"}]` |
 | cached_install | PXE boot and install from the Matchbox `/assets` cache. Admin MUST have downloaded Fedora CoreOS images into the cache | false | true |
 | install_disk | Disk device where Fedora CoreOS should be installed | "sda" (not "/dev/sda" like Container Linux) | "sdb" |
-| networking | Choice of networking provider | "cilium" | "calico" or "cilium" or "flannel" |
-| network_mtu | CNI interface MTU (calico-only) | 1480 | - |
+| networking | Choice of networking provider | "cilium" | "cilium" or "flannel" |
 | snippets | Map from machine names to lists of Butane snippets | {} | [examples](/advanced/customization/) |
-| network_ip_autodetection_method | Method to detect host IPv4 address (calico-only) | "first-found" | "can-reach=10.0.0.1" |
-| pod_cidr | CIDR IPv4 range to assign to Kubernetes pods | "10.2.0.0/16" | "10.22.0.0/16" |
+| pod_cidr | CIDR IPv4 range to assign to Kubernetes pods | "10.20.0.0/14" | "10.22.0.0/16" |
 | service_cidr | CIDR IPv4 range to assign to Kubernetes services | "10.3.0.0/16" | "10.3.0.0/24" |
 | kernel_args | Additional kernel args to provide at PXE boot | [] | ["kvm-intel.nested=1"] |
 | worker_node_labels | Map from worker name to list of initial node labels | {} | {"node2" = ["role=special"]} |
 | worker_node_taints | Map from worker name to list of initial node taints | {} | {"node2" = ["role=special:NoSchedule"]} |
-

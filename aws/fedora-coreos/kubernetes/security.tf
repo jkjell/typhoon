@@ -92,28 +92,27 @@ resource "aws_security_group_rule" "controller-cilium-health-self" {
   self      = true
 }
 
-# IANA VXLAN default
-resource "aws_security_group_rule" "controller-vxlan" {
-  count = var.networking == "flannel" ? 1 : 0
+resource "aws_security_group_rule" "controller-cilium-metrics" {
+  count = var.networking == "cilium" ? 1 : 0
 
   security_group_id = aws_security_group.controller.id
 
   type                     = "ingress"
-  protocol                 = "udp"
-  from_port                = 4789
-  to_port                  = 4789
+  protocol                 = "tcp"
+  from_port                = 9962
+  to_port                  = 9965
   source_security_group_id = aws_security_group.worker.id
 }
 
-resource "aws_security_group_rule" "controller-vxlan-self" {
-  count = var.networking == "flannel" ? 1 : 0
+resource "aws_security_group_rule" "controller-cilium-metrics-self" {
+  count = var.networking == "cilium" ? 1 : 0
 
   security_group_id = aws_security_group.controller.id
 
   type      = "ingress"
-  protocol  = "udp"
-  from_port = 4789
-  to_port   = 4789
+  protocol  = "tcp"
+  from_port = 9962
+  to_port   = 9965
   self      = true
 }
 
@@ -128,9 +127,7 @@ resource "aws_security_group_rule" "controller-apiserver" {
 }
 
 # Linux VXLAN default
-resource "aws_security_group_rule" "controller-linux-vxlan" {
-  count = var.networking == "cilium" ? 1 : 0
-
+resource "aws_security_group_rule" "controller-vxlan" {
   security_group_id = aws_security_group.controller.id
 
   type                     = "ingress"
@@ -140,9 +137,7 @@ resource "aws_security_group_rule" "controller-linux-vxlan" {
   source_security_group_id = aws_security_group.worker.id
 }
 
-resource "aws_security_group_rule" "controller-linux-vxlan-self" {
-  count = var.networking == "cilium" ? 1 : 0
-
+resource "aws_security_group_rule" "controller-vxlan-self" {
   security_group_id = aws_security_group.controller.id
 
   type      = "ingress"
@@ -215,66 +210,6 @@ resource "aws_security_group_rule" "controller-manager-metrics" {
   from_port                = 10257
   to_port                  = 10257
   source_security_group_id = aws_security_group.worker.id
-}
-
-resource "aws_security_group_rule" "controller-bgp" {
-  security_group_id = aws_security_group.controller.id
-
-  type                     = "ingress"
-  protocol                 = "tcp"
-  from_port                = 179
-  to_port                  = 179
-  source_security_group_id = aws_security_group.worker.id
-}
-
-resource "aws_security_group_rule" "controller-bgp-self" {
-  security_group_id = aws_security_group.controller.id
-
-  type      = "ingress"
-  protocol  = "tcp"
-  from_port = 179
-  to_port   = 179
-  self      = true
-}
-
-resource "aws_security_group_rule" "controller-ipip" {
-  security_group_id = aws_security_group.controller.id
-
-  type                     = "ingress"
-  protocol                 = 4
-  from_port                = 0
-  to_port                  = 0
-  source_security_group_id = aws_security_group.worker.id
-}
-
-resource "aws_security_group_rule" "controller-ipip-self" {
-  security_group_id = aws_security_group.controller.id
-
-  type      = "ingress"
-  protocol  = 4
-  from_port = 0
-  to_port   = 0
-  self      = true
-}
-
-resource "aws_security_group_rule" "controller-ipip-legacy" {
-  security_group_id = aws_security_group.controller.id
-
-  type                     = "ingress"
-  protocol                 = 94
-  from_port                = 0
-  to_port                  = 0
-  source_security_group_id = aws_security_group.worker.id
-}
-
-resource "aws_security_group_rule" "controller-ipip-legacy-self" {
-  security_group_id = aws_security_group.controller.id
-
-  type      = "ingress"
-  protocol  = 94
-  from_port = 0
-  to_port   = 0
-  self      = true
 }
 
 resource "aws_security_group_rule" "controller-egress" {
@@ -379,35 +314,32 @@ resource "aws_security_group_rule" "worker-cilium-health-self" {
   self      = true
 }
 
-# IANA VXLAN default
-resource "aws_security_group_rule" "worker-vxlan" {
-  count = var.networking == "flannel" ? 1 : 0
+resource "aws_security_group_rule" "worker-cilium-metrics" {
+  count = var.networking == "cilium" ? 1 : 0
 
   security_group_id = aws_security_group.worker.id
 
   type                     = "ingress"
-  protocol                 = "udp"
-  from_port                = 4789
-  to_port                  = 4789
+  protocol                 = "tcp"
+  from_port                = 9962
+  to_port                  = 9965
   source_security_group_id = aws_security_group.controller.id
 }
 
-resource "aws_security_group_rule" "worker-vxlan-self" {
-  count = var.networking == "flannel" ? 1 : 0
+resource "aws_security_group_rule" "worker-cilium-metrics-self" {
+  count = var.networking == "cilium" ? 1 : 0
 
   security_group_id = aws_security_group.worker.id
 
   type      = "ingress"
-  protocol  = "udp"
-  from_port = 4789
-  to_port   = 4789
+  protocol  = "tcp"
+  from_port = 9962
+  to_port   = 9965
   self      = true
 }
 
 # Linux VXLAN default
-resource "aws_security_group_rule" "worker-linux-vxlan" {
-  count = var.networking == "cilium" ? 1 : 0
-
+resource "aws_security_group_rule" "worker-vxlan" {
   security_group_id = aws_security_group.worker.id
 
   type                     = "ingress"
@@ -417,9 +349,7 @@ resource "aws_security_group_rule" "worker-linux-vxlan" {
   source_security_group_id = aws_security_group.controller.id
 }
 
-resource "aws_security_group_rule" "worker-linux-vxlan-self" {
-  count = var.networking == "cilium" ? 1 : 0
-
+resource "aws_security_group_rule" "worker-vxlan-self" {
   security_group_id = aws_security_group.worker.id
 
   type      = "ingress"
@@ -481,66 +411,6 @@ resource "aws_security_group_rule" "ingress-health" {
   from_port   = 10254
   to_port     = 10254
   cidr_blocks = ["0.0.0.0/0"]
-}
-
-resource "aws_security_group_rule" "worker-bgp" {
-  security_group_id = aws_security_group.worker.id
-
-  type                     = "ingress"
-  protocol                 = "tcp"
-  from_port                = 179
-  to_port                  = 179
-  source_security_group_id = aws_security_group.controller.id
-}
-
-resource "aws_security_group_rule" "worker-bgp-self" {
-  security_group_id = aws_security_group.worker.id
-
-  type      = "ingress"
-  protocol  = "tcp"
-  from_port = 179
-  to_port   = 179
-  self      = true
-}
-
-resource "aws_security_group_rule" "worker-ipip" {
-  security_group_id = aws_security_group.worker.id
-
-  type                     = "ingress"
-  protocol                 = 4
-  from_port                = 0
-  to_port                  = 0
-  source_security_group_id = aws_security_group.controller.id
-}
-
-resource "aws_security_group_rule" "worker-ipip-self" {
-  security_group_id = aws_security_group.worker.id
-
-  type      = "ingress"
-  protocol  = 4
-  from_port = 0
-  to_port   = 0
-  self      = true
-}
-
-resource "aws_security_group_rule" "worker-ipip-legacy" {
-  security_group_id = aws_security_group.worker.id
-
-  type                     = "ingress"
-  protocol                 = 94
-  from_port                = 0
-  to_port                  = 0
-  source_security_group_id = aws_security_group.controller.id
-}
-
-resource "aws_security_group_rule" "worker-ipip-legacy-self" {
-  security_group_id = aws_security_group.worker.id
-
-  type      = "ingress"
-  protocol  = 94
-  from_port = 0
-  to_port   = 0
-  self      = true
 }
 
 resource "aws_security_group_rule" "worker-egress" {

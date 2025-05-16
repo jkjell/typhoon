@@ -22,30 +22,6 @@ variable "dns_zone_name" {
 
 # instances
 
-variable "controller_count" {
-  type        = number
-  description = "Number of controllers (i.e. masters)"
-  default     = 1
-}
-
-variable "worker_count" {
-  type        = number
-  description = "Number of workers"
-  default     = 1
-}
-
-variable "controller_type" {
-  type        = string
-  description = "Machine type for controllers (see `gcloud compute machine-types list`)"
-  default     = "n1-standard-1"
-}
-
-variable "worker_type" {
-  type        = string
-  description = "Machine type for controllers (see `gcloud compute machine-types list`)"
-  default     = "n1-standard-1"
-}
-
 variable "os_stream" {
   type        = string
   description = "Fedora CoreOS stream for compute instances (e.g. stable, testing, next)"
@@ -57,10 +33,60 @@ variable "os_stream" {
   }
 }
 
-variable "disk_size" {
+variable "controller_count" {
+  type        = number
+  description = "Number of controllers (i.e. masters)"
+  default     = 1
+}
+
+variable "controller_type" {
+  type        = string
+  description = "Machine type for controllers (see `gcloud compute machine-types list`)"
+  default     = "n1-standard-1"
+}
+
+variable "controller_disk_size" {
   type        = number
   description = "Size of the disk in GB"
   default     = 30
+}
+
+variable "controller_disk_type" {
+  type        = string
+  description = "Type of managed disk for controller node(s)"
+  default     = "pd-standard"
+  validation {
+    condition     = contains(["pd-standard", "pd-ssd", "pd-balanced"], var.controller_disk_type)
+    error_message = "The controller_disk_type must be pd-standard, pd-ssd or pd-balanced."
+  }
+}
+
+variable "worker_count" {
+  type        = number
+  description = "Number of workers"
+  default     = 1
+}
+
+variable "worker_type" {
+  type        = string
+  description = "Machine type for controllers (see `gcloud compute machine-types list`)"
+  default     = "n1-standard-1"
+}
+
+variable "worker_disk_size" {
+  type        = number
+  description = "Size of the disk in GB"
+  default     = 30
+}
+
+variable "worker_disk_type" {
+  type        = string
+  description = "Type of managed disk for worker nodes"
+  default     = "pd-standard"
+  validation {
+    condition     = contains(["pd-standard", "pd-ssd", "pd-balanced"], var.worker_disk_type)
+    error_message = "The worker_disk_type must be pd-standard, pd-ssd or pd-balanced."
+  }
 }
 
 variable "worker_preemptible" {
@@ -90,20 +116,14 @@ variable "ssh_authorized_key" {
 
 variable "networking" {
   type        = string
-  description = "Choice of networking provider (flannel, calico, or cilium)"
+  description = "Choice of networking provider (flannel or cilium)"
   default     = "cilium"
-}
-
-variable "install_container_networking" {
-  type        = bool
-  description = "Install the chosen networking provider during cluster bootstrap (use false to self-manage)"
-  default     = true
 }
 
 variable "pod_cidr" {
   type        = string
   description = "CIDR IPv4 range to assign Kubernetes pods"
-  default     = "10.2.0.0/16"
+  default     = "10.20.0.0/14"
 }
 
 variable "service_cidr" {
@@ -115,35 +135,37 @@ EOD
   default     = "10.3.0.0/16"
 }
 
-
-variable "enable_reporting" {
-  type        = bool
-  description = "Enable usage or analytics reporting to upstreams (Calico)"
-  default     = false
-}
-
-variable "enable_aggregation" {
-  type        = bool
-  description = "Enable the Kubernetes Aggregation Layer"
-  default     = true
-}
-
 variable "worker_node_labels" {
   type        = list(string)
   description = "List of initial worker node labels"
   default     = []
 }
 
-# unofficial, undocumented, unsupported
-
-variable "cluster_domain_suffix" {
-  type        = string
-  description = "Queries for domains with the suffix will be answered by coredns. Default is cluster.local (e.g. foo.default.svc.cluster.local) "
-  default     = "cluster.local"
-}
+# advanced
 
 variable "daemonset_tolerations" {
   type        = list(string)
   description = "List of additional taint keys kube-system DaemonSets should tolerate (e.g. ['custom-role', 'gpu-role'])"
   default     = []
+}
+
+variable "components" {
+  description = "Configure pre-installed cluster components"
+  # Component configs are passed through to terraform-render-bootstrap,
+  # which handles type enforcement and defines defaults
+  # https://github.com/poseidon/terraform-render-bootstrap/blob/main/variables.tf#L95
+  type = object({
+    enable     = optional(bool)
+    coredns    = optional(map(any))
+    kube_proxy = optional(map(any))
+    flannel    = optional(map(any))
+    cilium     = optional(map(any))
+  })
+  default = null
+}
+
+variable "service_account_issuer" {
+  type        = string
+  description = "kube-apiserver service account token issuer (used as an identifier in 'iss' claims)"
+  default     = "https://kubernetes.default.svc.cluster.local"
 }

@@ -32,14 +32,14 @@ resource "digitalocean_firewall" "rules" {
     source_tags = [digitalocean_tag.controllers.name, digitalocean_tag.workers.name]
   }
 
-  # IANA vxlan (flannel, calico)
+  # Cilium metrics
   inbound_rule {
-    protocol    = "udp"
-    port_range  = "4789"
+    protocol    = "tcp"
+    port_range  = "9962-9965"
     source_tags = [digitalocean_tag.controllers.name, digitalocean_tag.workers.name]
   }
 
-  # Linux vxlan (Cilium)
+  # vxlan
   inbound_rule {
     protocol    = "udp"
     port_range  = "8472"

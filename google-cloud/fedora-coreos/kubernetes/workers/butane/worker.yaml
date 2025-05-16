@@ -26,11 +26,10 @@ systemd:
         Description=Kubelet (System Container)
         Wants=rpc-statd.service
         [Service]
-        Environment=KUBELET_IMAGE=quay.io/poseidon/kubelet:v1.30.0
+        Environment=KUBELET_IMAGE=quay.io/poseidon/kubelet:v1.33.0
         ExecStartPre=/bin/mkdir -p /etc/cni/net.d
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /opt/cni/bin
-        ExecStartPre=/bin/mkdir -p /var/lib/calico
         ExecStartPre=/bin/mkdir -p /var/lib/kubelet/volumeplugins
         ExecStartPre=/usr/bin/bash -c "grep 'certificate-authority-data' /etc/kubernetes/kubeconfig | awk '{print $2}' | base64 -d > /etc/kubernetes/ca.crt"
         ExecStartPre=-/usr/bin/podman rm kubelet
@@ -48,7 +47,6 @@ systemd:
           --volume /sys/fs/cgroup:/sys/fs/cgroup \
           --volume /etc/selinux:/etc/selinux \
           --volume /sys/fs/selinux:/sys/fs/selinux \
-          --volume /var/lib/calico:/var/lib/calico:ro \
           --volume /var/lib/containerd:/var/lib/containerd \
           --volume /var/lib/kubelet:/var/lib/kubelet:rshared,z \
           --volume /var/log:/var/log \
@@ -98,15 +96,23 @@ storage:
           cgroupDriver: systemd
           clusterDNS:
             - ${cluster_dns_service_ip}
-          clusterDomain: ${cluster_domain_suffix}
+          clusterDomain: cluster.local
           healthzPort: 0
           rotateCertificates: true
+          serializeImagePulls: false
           shutdownGracePeriod: 45s
           shutdownGracePeriodCriticalPods: 30s
           staticPodPath: /etc/kubernetes/manifests
           readOnlyPort: 0
           resolvConf: /run/systemd/resolve/resolv.conf
           volumePluginDir: /var/lib/kubelet/volumeplugins
+    - path: /etc/modules-load.d/typhoon.conf
+      mode: 0644
+      contents:
+        inline: |
+          # https://github.com/flannel-io/flannel/tree/master
+          nf_conntrack
+          br_netfilter
     - path: /etc/systemd/logind.conf.d/inhibitors.conf
       contents:
         inline: |

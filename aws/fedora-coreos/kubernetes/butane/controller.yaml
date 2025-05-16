@@ -57,12 +57,11 @@ systemd:
         After=afterburn.service
         Wants=rpc-statd.service
         [Service]
-        Environment=KUBELET_IMAGE=quay.io/poseidon/kubelet:v1.30.0
+        Environment=KUBELET_IMAGE=quay.io/poseidon/kubelet:v1.33.0
         EnvironmentFile=/run/metadata/afterburn
         ExecStartPre=/bin/mkdir -p /etc/cni/net.d
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /opt/cni/bin
-        ExecStartPre=/bin/mkdir -p /var/lib/calico
         ExecStartPre=/bin/mkdir -p /var/lib/kubelet/volumeplugins
         ExecStartPre=/usr/bin/bash -c "grep 'certificate-authority-data' /etc/kubernetes/kubeconfig | awk '{print $2}' | base64 -d > /etc/kubernetes/ca.crt"
         ExecStartPre=-/usr/bin/podman rm kubelet
@@ -80,7 +79,6 @@ systemd:
           --volume /sys/fs/cgroup:/sys/fs/cgroup \
           --volume /etc/selinux:/etc/selinux \
           --volume /sys/fs/selinux:/sys/fs/selinux \
-          --volume /var/lib/calico:/var/lib/calico:ro \
           --volume /var/lib/containerd:/var/lib/containerd \
           --volume /var/lib/kubelet:/var/lib/kubelet:rshared,z \
           --volume /var/log:/var/log \
@@ -116,7 +114,7 @@ systemd:
             --volume /opt/bootstrap/assets:/assets:ro,Z \
             --volume /opt/bootstrap/apply:/apply:ro,Z \
             --entrypoint=/apply \
-            quay.io/poseidon/kubelet:v1.30.0
+            quay.io/poseidon/kubelet:v1.33.0
         ExecStartPost=/bin/touch /opt/bootstrap/bootstrap.done
         ExecStartPost=-/usr/bin/podman stop bootstrap
 storage:
@@ -149,21 +147,29 @@ storage:
           cgroupDriver: systemd
           clusterDNS:
             - ${cluster_dns_service_ip}
-          clusterDomain: ${cluster_domain_suffix}
+          clusterDomain: cluster.local
           healthzPort: 0
           rotateCertificates: true
+          serializeImagePulls: false
           shutdownGracePeriod: 45s
           shutdownGracePeriodCriticalPods: 30s
           staticPodPath: /etc/kubernetes/manifests
           readOnlyPort: 0
           resolvConf: /run/systemd/resolve/resolv.conf
           volumePluginDir: /var/lib/kubelet/volumeplugins
+    - path: /etc/modules-load.d/typhoon.conf
+      mode: 0644
+      contents:
+        inline: |
+          # https://github.com/flannel-io/flannel/tree/master
+          nf_conntrack
+          br_netfilter
     - path: /opt/bootstrap/layout
       mode: 0544
       contents:
         inline: |
           #!/bin/bash -e
-          mkdir -p -- auth tls/etcd tls/k8s static-manifests manifests/coredns manifests-networking
+          mkdir -p -- auth tls/{etcd,k8s} static-manifests manifests/{coredns,kube-proxy,network}
           awk '/#####/ {filename=$2; next} {print > filename}' assets
           mkdir -p /etc/ssl/etcd/etcd
           mkdir -p /etc/kubernetes/pki
@@ -177,8 +183,7 @@ storage:
           mv static-manifests/* /etc/kubernetes/manifests/
           mkdir -p /opt/bootstrap/assets
           mv manifests /opt/bootstrap/assets/manifests
-          mv manifests-networking/* /opt/bootstrap/assets/manifests/ 2>/dev/null || true
-          rm -rf assets auth static-manifests tls manifests manifests-networking
+          rm -rf assets auth static-manifests tls manifests
           chcon -R -u system_u -t container_file_t /etc/kubernetes/pki
     - path: /opt/bootstrap/apply
       mode: 0544
